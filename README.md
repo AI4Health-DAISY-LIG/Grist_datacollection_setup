@@ -41,6 +41,20 @@ Options utiles :
 - `--env-file chemin/.env` utilise un autre fichier de configuration.
 - `--base URL` vise une autre instance Grist.
 - `--keep-defaults` conserve les colonnes `A`, `B` et `C` créées par Grist.
+- `--update-gpu-fields` met à jour les choix des questions GPU et VRAM déjà
+  présentes dans la table.
+- `--update-formulas` met à jour les formules existantes qui sont encore des
+  formules Grist ; les colonnes déjà gelées en données restent inchangées.
+
+Pour appliquer les nouvelles questions GPU à une table existante :
+
+```powershell
+uv run python main.py --update-gpu-fields --update-formulas
+```
+
+Cette commande ajoute aussi les colonnes manquantes du schéma, notamment le
+champ de saisie du modèle GPU. Les valeurs saisies restent intactes ; les
+colonnes de formule concernées sont mises à jour et recalculées.
 
 ## Format YAML
 

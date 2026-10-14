@@ -1,0 +1,241 @@
+# Schema complet de la collecte AIadoption.
+# Les formules sont du Python execute par Grist.
+columns:
+  - id: consentement
+    fields: {label: Consentement, type: Bool, description: Doit etre vrai. Sans quoi la ligne est ecartee.}
+    widget_options: {widget: Switch}
+  - id: cohorte
+    fields: {label: Cohorte, type: Choice, description: Jeton de session, jamais individuel.}
+    choices: [M2-AIOMICS-2026, SEMINAIRE-2026-11, ECOLE-ETE-2026]
+  - id: source
+    fields: {label: Source, type: Choice, description: sonde = JSON colle ; declaratif = menus.}
+    choices: [sonde, declaratif]
+  - id: raw
+    fields: {label: Charge utile, type: Text, description: JSON de la sonde. Champ de transport, purge apres gel des c_*.}
+  - id: recu_le
+    fields: {label: Recu le, type: 'DateTime:Europe/Paris', description: Usage interne. Ne jamais publier.}
+    formula: NOW()
+    is_formula: false
+    recalc_when: 0
+    recalc_deps: null
+
+  - id: d_machine_type
+    fields: {label: Type de machine, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Portable personnel, Portable fourni par l'etablissement ou le laboratoire, Fixe personnel, Fixe de l'etablissement (salle de TP), Machine virtuelle ou serveur distant, Tablette ou Chromebook, Je ne sais pas]
+  - id: d_os
+    fields: {label: Systeme d'exploitation, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Windows 11, Windows 10, Windows version anterieure, macOS 26 (Tahoe), macOS 15 (Sequoia), macOS 14 (Sonoma), macOS 13 ou anterieur, Linux - Ubuntu, Linux - Debian, Linux - Fedora, Linux - Arch / Manjaro, Linux - autre distribution, ChromeOS, Je ne sais pas]
+  - id: d_cpu_family
+    fields: {label: Famille de processeur, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Apple Silicon (M1 a M4 ou plus recent), Intel Core (i3 / i5 / i7 / i9), Intel Core Ultra, AMD Ryzen, Autre, Je ne sais pas]
+  - id: d_cores
+    fields: {label: Nombre de coeurs logiques, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [2 ou moins, 3-4, 5-8, 9-16, Plus de 16, Je ne sais pas]
+  - id: d_ram
+    fields: {label: Memoire vive (RAM), type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [4 Go ou moins, 8 Go, 16 Go, 24 Go, 32 Go, 48 Go, 64 Go ou plus, Je ne sais pas]
+  - id: d_gpu
+    fields: {label: Type de carte graphique (GPU), type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: ['NVIDIA (GeForce RTX, GTX, etc.)', AMD Radeon, GPU integre Apple Silicon, GPU Intel integre, Pas de GPU dedie, Je ne sais pas, Sans reponse]
+  - id: d_vram
+    fields: {label: Memoire GPU (VRAM), type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [4 Go ou moins, 6-8 Go, 10-12 Go, 16 Go ou plus, Je ne sais pas / Sans objet, Sans reponse]
+  - id: d_gpu_model
+    fields: {label: Modele du GPU (NVIDIA / AMD), type: Text, description: A renseigner si le GPU est NVIDIA ou AMD (ex. GeForce RTX 4060, Radeon RX 7800 XT).}
+  - id: d_disk
+    fields: {label: Espace disque libre, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Moins de 10 Go, 10-25 Go, 25-50 Go, 50-100 Go, Plus de 100 Go, Je ne sais pas]
+  - id: d_python
+    fields: {label: Version de Python installee, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Aucune installation, '3.10', '3.11', '3.12', '3.13', Autre version, Je ne sais pas]
+  - id: d_envmgr
+    fields: {label: Gestionnaire d'environnement, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Aucun, conda / miniconda / Anaconda, mamba / micromamba, venv / virtualenv, uv, poetry, Docker, Je ne sais pas]
+  - id: d_reseau
+    fields: {label: Connexion pendant les seances, type: Choice, description: Voie declarative. Vide si source = sonde.}
+    choices: [Wifi de l'etablissement, Connexion personnelle a domicile, Partage de connexion mobile, Variable selon les seances, Je ne sais pas]
+
+  - id: c_json
+    fields: {label: JSON analyse, type: Any, description: Parsing unique. Toutes les colonnes c_* le relisent.}
+    formula: |
+      import json
+      try:
+          return json.loads($raw) if $raw else {}
+      except Exception:
+          return {}
+  - id: c_schema
+    fields: {label: Schema, type: Text}
+    formula: 'return $c_json.get("schema")'
+  - id: c_os
+    fields: {label: OS (sonde), type: Text}
+    formula: 'return $c_json.get("os")'
+  - id: c_os_release
+    fields: {label: Version OS (sonde), type: Text}
+    formula: 'return $c_json.get("os_release")'
+  - id: c_arch
+    fields: {label: Architecture (sonde), type: Text}
+    formula: 'return $c_json.get("arch")'
+  - id: c_python
+    fields: {label: Python (sonde), type: Text}
+    formula: 'return $c_json.get("python")'
+  - id: c_cpu_model
+    fields: {label: Modele CPU (sonde), type: Text}
+    formula: 'return $c_json.get("cpu_model")'
+  - id: c_cores
+    fields: {label: Coeurs (sonde), type: Int}
+    formula: 'return $c_json.get("cpu_logical")'
+  - id: c_ram_gb
+    fields: {label: RAM Go (sonde), type: Int}
+    formula: 'return $c_json.get("ram_gb")'
+  - id: c_gpu
+    fields: {label: GPU (sonde), type: Text}
+    formula: 'return $c_json.get("gpu")'
+  - id: c_vram_gb
+    fields: {label: VRAM Go (sonde), type: Int}
+    formula: 'return $c_json.get("vram_gb")'
+  - id: c_disk_free_gb
+    fields: {label: Disque libre Go (sonde), type: Int}
+    formula: 'return $c_json.get("disk_free_gb")'
+
+  - id: qa_valide
+    fields: {label: Valide, type: Bool, description: Faux = a examiner a la main avant traitement.}
+    formula: |
+      if not $consentement:
+          return False
+      if $source == "declaratif":
+          return bool($d_os)
+      schema_ok = $c_json.get("schema") == "aiadoption-v1"
+      size_ok = len($raw or "") < 600
+      return schema_ok and size_ok
+  - id: qa_note
+    fields: {label: Note de controle, type: Text, description: 'Saisie manuelle : anomalie, doublon suspect, ligne ecartee.'}
+  - id: qa_purge
+    fields: {label: raw purge, type: Bool, description: Cocher une fois c_* gelees et raw vide.}
+    widget_options: {widget: Switch}
+
+  - id: p_os_famille
+    fields: {label: OS (publie), type: Text}
+    formula: |
+      v = ($c_os or "").lower()
+      if v:
+          if "windows" in v: return "windows"
+          if "darwin" in v or "mac" in v: return "macos"
+          if "linux" in v: return "linux"
+      d = $d_os or ""
+      if d.startswith("Windows"): return "windows"
+      if d.startswith("macOS"): return "macos"
+      if d.startswith("Linux"): return "linux"
+      if d.startswith("ChromeOS"): return "chromeos"
+      return "nd"
+  - id: p_cpu_famille
+    fields: {label: CPU (publie), type: Text}
+    formula: |
+      arch = ($c_arch or "").lower()
+      cpu = ($c_cpu_model or "").lower()
+      if ($c_os or "") == "Darwin" and arch in ("arm64", "aarch64"):
+          return "apple_silicon"
+      if "intel" in cpu: return "intel"
+      if "amd" in cpu or "ryzen" in cpu: return "amd"
+      d = $d_cpu_family or ""
+      if d.startswith("Apple"): return "apple_silicon"
+      if d.startswith("Intel"): return "intel"
+      if d.startswith("AMD"): return "amd"
+      if d == "Autre": return "autre"
+      return "nd"
+  - id: p_cores_bin
+    fields: {label: Coeurs (publie), type: Text}
+    formula: |
+      v = $c_cores
+      if v is not None:
+          if v <= 4: return "<=4"
+          if v <= 8: return "5-8"
+          if v <= 16: return "9-16"
+          return ">16"
+      return {"2 ou moins": "<=4", "3-4": "<=4", "5-8": "5-8", "9-16": "9-16", "Plus de 16": ">16"}.get($d_cores, "nd")
+  - id: p_ram_bin
+    fields: {label: RAM (publie), type: Text}
+    formula: |
+      v = $c_ram_gb
+      if v is not None:
+          if v <= 8: return "<=8"
+          if v <= 16: return "16"
+          if v <= 32: return "24-32"
+          return ">32"
+      return {"4 Go ou moins": "<=8", "8 Go": "<=8", "16 Go": "16", "24 Go": "24-32", "32 Go": "24-32", "48 Go": ">32", "64 Go ou plus": ">32"}.get($d_ram, "nd")
+  - id: p_gpu_classe
+    fields: {label: GPU (publie), type: Text}
+    formula: |
+      if $source == "sonde":
+          g = ($c_gpu or "").lower()
+          if not g or g == "inconnu": return "nd"
+          if g == "aucun": return "aucun_dedie"
+          if g == "apple-mps": return "integre_apple"
+          if any(k in g for k in ("nvidia", "geforce", "rtx", "quadro", "tesla")): return "nvidia"
+          if any(k in g for k in ("radeon", "amd")): return "amd"
+          if "arc" in g: return "intel_arc"
+          if "intel" in g: return "integre_intel"
+          return "autre"
+      d = $d_gpu or ""
+      if d == "Pas de GPU dedie": return "aucun_dedie"
+      if d == "GPU integre Apple Silicon": return "integre_apple"
+      if d == "GPU Intel integre": return "integre_intel"
+      if d.startswith("Non"): return "aucun_dedie"
+      if d.startswith("Intel Arc"): return "intel_arc"
+      if d.startswith("NVIDIA"): return "nvidia"
+      if d.startswith("AMD"): return "amd"
+      return "nd"
+  - id: p_vram_bin
+    fields: {label: VRAM (publie), type: Text}
+    formula: |
+      v = $c_vram_gb
+      if v is not None:
+          if v <= 4: return "<=4"
+          if v <= 8: return "6-8"
+          if v <= 12: return "10-12"
+          return ">=16"
+      if $source == "sonde":
+          return "sans_objet" if $p_gpu_classe in ("aucun_dedie", "integre_apple", "integre_intel") else "nd"
+      if $d_vram == "Je ne sais pas / Sans objet":
+          return "sans_objet" if $p_gpu_classe in ("aucun_dedie", "integre_apple", "integre_intel") else "nd"
+      return {"4 Go ou moins": "<=4", "6-8 Go": "6-8", "10-12 Go": "10-12", "16 Go ou plus": ">=16", "Moins de 4 Go": "<=4", "4-6 Go": "6-8", "8 Go": "6-8", "12 Go": "10-12", "16 Go": ">=16", "32 Go": ">=16", "64 Go": ">=16", "128 Go ou plus": ">=16", "Sans objet (pas de GPU dedie)": "sans_objet"}.get($d_vram or "", "nd")
+  - id: p_disk_bin
+    fields: {label: Disque (publie), type: Text}
+    formula: |
+      v = $c_disk_free_gb
+      if v is not None:
+          if v < 25: return "<25"
+          if v <= 100: return "25-100"
+          return ">100"
+      return {"Moins de 10 Go": "<25", "10-25 Go": "<25", "25-50 Go": "25-100", "50-100 Go": "25-100", "Plus de 100 Go": ">100"}.get($d_disk or "", "nd")
+  - id: p_python_majeur
+    fields: {label: Python (publie), type: Text}
+    formula: |
+      CONNUES = ("3.10", "3.11", "3.12", "3.13")
+      v = $c_python or ""
+      if v:
+          p = v.split(".")
+          if len(p) >= 2:
+              mm = p[0] + "." + p[1]
+              return mm if mm in CONNUES else "autre"
+      d = $d_python or ""
+      if d in CONNUES: return d
+      if d == "Aucune installation": return "aucun"
+      if d == "Autre version": return "autre"
+      return "nd"
+  - id: p_session_type
+    fields: {label: Type de session (publie), type: Text}
+    formula: |
+      c = ($cohorte or "").upper()
+      if c.startswith("M2"): return "cours_m2"
+      if c.startswith("SEMINAIRE"): return "seminaire"
+      if c.startswith("ECOLE"): return "ecole_ete"
+      return "nd"
+  - id: p_annee
+    fields: {label: Annee (publie), type: Int, description: Derivee de cohorte, jamais de recu_le.}
+    formula: |
+      import re
+      m = re.search(r"(20\d\d)", $cohorte or "")
+      return int(m.group(1)) if m else None
+  - id: p_source
+    fields: {label: Source (publie), type: Text}
+    formula: 'return $source or "nd"'

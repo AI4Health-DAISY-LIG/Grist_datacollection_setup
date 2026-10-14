@@ -10,6 +10,9 @@ wheels/
 .venv
 
 data/
+!data/
+data/*
+!data/schema.yml
 .env
 .env.*
 !.env.example

@@ -41,12 +41,23 @@ class Grist:
             raise RuntimeError(f"{response.status_code} - {response.text}")
 
     def columns(self, table: str) -> list[str]:
+        return [column["id"] for column in self.column_details(table)]
+
+    def column_details(self, table: str) -> list[dict]:
         response = self.session.get(self._url(f"/tables/{table}/columns"))
         response.raise_for_status()
-        return [column["id"] for column in response.json().get("columns", [])]
+        return response.json().get("columns", [])
 
     def add_columns(self, table: str, columns: list[dict]) -> None:
         response = self.session.post(
+            self._url(f"/tables/{table}/columns"),
+            json={"columns": columns},
+        )
+        if not response.ok:
+            raise RuntimeError(f"{response.status_code} - {response.text}")
+
+    def modify_columns(self, table: str, columns: list[dict]) -> None:
+        response = self.session.patch(
             self._url(f"/tables/{table}/columns"),
             json={"columns": columns},
         )
@@ -85,6 +96,12 @@ def parse_args() -> argparse.Namespace:
                         help="Afficher le schéma sans modifier Grist")
     parser.add_argument("--keep-defaults", action="store_true",
                         help="Conserver les colonnes A, B et C de Grist")
+    parser.add_argument("--update-formulas", action="store_true",
+                        help="Mettre à jour les formules existantes sans "
+                             "convertir les colonnes gelées en formules")
+    parser.add_argument("--update-gpu-fields", action="store_true",
+                        help="Mettre à jour les choix des colonnes GPU/VRAM "
+                             "déjà présentes")
     return parser.parse_args()
 
 
@@ -117,8 +134,42 @@ def main() -> None:
             sys.exit(f"Impossible de créer la table « {args.table} » : {error}")
         print(f"Table « {args.table} » créée.")
 
-    existing = [] if table_created else grist.columns(args.table)
+    existing_details = [] if table_created else grist.column_details(args.table)
+    existing = [column["id"] for column in existing_details]
     print(f"Table « {args.table} » : {len(existing)} colonne(s) existante(s).")
+
+    if args.update_gpu_fields and not table_created:
+        gpu_columns = [
+            column for column in columns
+            if column["id"] in {"d_gpu", "d_vram"}
+            and column["id"] in existing
+        ]
+        print(f"\nMise à jour de {len(gpu_columns)} question(s) GPU existante(s) :")
+        for column in gpu_columns:
+            try:
+                grist.modify_columns(args.table, [column])
+                print(f"  ~ {column['id']}")
+            except Exception as error:
+                print(f"  ! {column['id']} - ÉCHEC : {error}")
+
+    if args.update_formulas and not table_created:
+        existing_formulas = {
+            column["id"] for column in existing_details
+            if column.get("fields", {}).get("isFormula")
+        }
+        formulas = [
+            column for column in columns
+            if column["id"] in existing_formulas
+            and column["fields"].get("isFormula")
+        ]
+        print(f"\nMise à jour de {len(formulas)} formule(s) existante(s) :")
+        for column in formulas:
+            try:
+                grist.modify_columns(args.table, [column])
+                print(f"  ~ {column['id']}")
+            except Exception as error:
+                print(f"  ! {column['id']} - ÉCHEC : {error}")
+        print("  Les colonnes gelées en données ne sont pas modifiées.")
 
     to_create = [column for column in columns if column["id"] not in existing]
     if len(to_create) < len(columns):

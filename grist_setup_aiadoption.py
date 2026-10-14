@@ -2,7 +2,7 @@
 """
 Construction de la table de collecte AIadoption dans Grist.
 
-À lancer UNE FOIS, depuis votre poste. Crée toutes les colonnes :
+À lancer UNE FOIS, localement. Crée toutes les colonnes :
 types, listes de choix, formules, contrôle qualité, colonnes de publication.
 
     pip install requests
@@ -12,6 +12,10 @@ types, listes de choix, formules, contrôle qualité, colonnes de publication.
 Options utiles :
     --dry-run        affiche ce qui serait fait, sans rien modifier
     --keep-defaults  ne supprime pas les colonnes A/B/C créées par Grist
+    --update-gpu-fields met à jour les choix GPU/VRAM déjà présents
+
+Pour appliquer les questions GPU à une table existante :
+    python grist_setup_aiadoption.py --doc <DOC_ID> --update-gpu-fields --update-formulas
 
 Où trouver les valeurs :
   - GRIST_API_KEY : Profil (en haut à droite) > Profile Settings > API Key
@@ -84,19 +88,21 @@ CHOIX = {
         "64 Go ou plus", "Je ne sais pas",
     ],
     "d_gpu": [
-        "Non — graphiques intégrés uniquement",
-        "GPU intégré Apple Silicon",
-        "NVIDIA GeForce RTX série 30",
-        "NVIDIA GeForce RTX série 40",
-        "NVIDIA GeForce RTX série 50",
-        "NVIDIA — autre ou gamme professionnelle",
+        "NVIDIA (GeForce RTX, GTX, etc.)",
         "AMD Radeon",
-        "Intel Arc",
+        "GPU intégré Apple Silicon",
+        "GPU Intel intégré",
+        "Pas de GPU dédié",
         "Je ne sais pas",
+        "Sans réponse",
     ],
     "d_vram": [
-        "Moins de 4 Go", "4-6 Go", "8 Go", "12 Go", "16 Go", "Plus de 16 Go",
-        "Sans objet (pas de GPU dédié)", "Je ne sais pas",
+        "4 Go ou moins",
+        "6-8 Go",
+        "10-12 Go",
+        "16 Go ou plus",
+        "Je ne sais pas / Sans objet",
+        "Sans réponse",
     ],
     "d_disk": [
         "Moins de 10 Go", "10-25 Go", "25-50 Go", "50-100 Go",
@@ -191,7 +197,7 @@ def schema():
         "d_cpu_family": "Famille de processeur",
         "d_cores": "Nombre de cœurs logiques",
         "d_ram": "Mémoire vive (RAM)",
-        "d_gpu": "Carte graphique dédiée",
+        "d_gpu": "Type de carte graphique (GPU)",
         "d_vram": "Mémoire GPU (VRAM)",
         "d_disk": "Espace disque libre",
         "d_python": "Version de Python installée",
@@ -200,6 +206,11 @@ def schema():
     }
     for cid, lab in libelles.items():
         cols.append(choix(cid, lab, "Voie déclarative. Vide si source = sonde."))
+    cols.append(texte(
+        "d_gpu_model",
+        "Modèle du GPU (NVIDIA / AMD)",
+        "À renseigner si le GPU est NVIDIA ou AMD (ex. GeForce RTX 4060, Radeon RX 7800 XT).",
+    ))
 
     # --- Bloc 3 : canonique -------------------------------------------------
     cols.append(formule("c_json", "JSON analysé", """
@@ -311,28 +322,40 @@ if $source == "sonde":
     if any(k in g for k in ("nvidia", "geforce", "rtx", "quadro", "tesla")):
         return "nvidia"
     if any(k in g for k in ("radeon", "amd")): return "amd"
-    if "arc" in g or "intel" in g: return "intel_arc"
+    if "arc" in g: return "intel_arc"
+    if "intel" in g: return "integre_intel"
     return "autre"
 d = $d_gpu or ""
+if d == "Pas de GPU dédié": return "aucun_dedie"
+if d == "GPU intégré Apple Silicon": return "integre_apple"
+if d == "GPU Intel intégré": return "integre_intel"
 if d.startswith("Non"): return "aucun_dedie"
-if d.startswith("GPU intégré Apple"): return "integre_apple"
+if d.startswith("Intel Arc"): return "intel_arc"
 if d.startswith("NVIDIA"): return "nvidia"
 if d.startswith("AMD"): return "amd"
-if d.startswith("Intel Arc"): return "intel_arc"
 return "nd"
 """, "Text"))
 
     cols.append(formule("p_vram_bin", "VRAM (publié)", """
 v = $c_vram_gb
 if v is not None:
-    if v < 8: return "<8"
-    if v <= 12: return "8-12"
-    return ">12"
+    if v <= 4: return "<=4"
+    if v <= 8: return "6-8"
+    if v <= 12: return "10-12"
+    return ">=16"
 if $source == "sonde":
-    return "sans_objet" if $p_gpu_classe in ("aucun_dedie", "integre_apple") else "nd"
-return {"Moins de 4 Go": "<8", "4-6 Go": "<8", "8 Go": "8-12",
-        "12 Go": "8-12", "16 Go": ">12", "Plus de 16 Go": ">12",
-        "Sans objet (pas de GPU dédié)": "sans_objet"}.get($d_vram or "", "nd")
+    return "sans_objet" if $p_gpu_classe in (
+        "aucun_dedie", "integre_apple", "integre_intel") else "nd"
+if $d_vram == "Je ne sais pas / Sans objet":
+    return "sans_objet" if $p_gpu_classe in (
+        "aucun_dedie", "integre_apple", "integre_intel") else "nd"
+return {"4 Go ou moins": "<=4", "6-8 Go": "6-8",
+        "10-12 Go": "10-12", "16 Go ou plus": ">=16",
+        "Moins de 4 Go": "<=4", "4-6 Go": "6-8", "8 Go": "6-8",
+        "12 Go": "10-12", "16 Go": ">=16", "32 Go": ">=16",
+        "64 Go": ">=16", "128 Go ou plus": ">=16",
+        "Sans objet (pas de GPU dédié)": "sans_objet"}.get(
+            $d_vram or "", "nd")
 """, "Text"))
 
     cols.append(formule("p_disk_bin", "Disque (publié)", """
@@ -430,6 +453,9 @@ def main():
     ap.add_argument("--update-formulas", action="store_true",
                     help="Réécrire les formules des colonnes DÉJÀ existantes "
                          "(c_*, qa_*, p_*). Ne touche pas aux données saisies.")
+    ap.add_argument("--update-gpu-fields", action="store_true",
+                    help="Mettre à jour les choix et libellés des colonnes "
+                         "d_gpu et d_vram déjà présentes.")
     args = ap.parse_args()
 
     cle = os.environ.get("GRIST_API_KEY")
@@ -452,6 +478,18 @@ def main():
 
     existantes = g.colonnes(args.table)
     print(f"Table « {args.table} » : {len(existantes)} colonne(s) existante(s).")
+
+    if args.update_gpu_fields:
+        maj_gpu = [c for c in cols
+                   if c["id"] in ("d_gpu", "d_vram")
+                   and c["id"] in existantes]
+        print(f"\nMise à jour de {len(maj_gpu)} question(s) GPU existante(s) :")
+        for c in maj_gpu:
+            try:
+                g.modifier(args.table, [c])
+                print(f"  ~ {c['id']}")
+            except Exception as e:
+                print(f"  ! {c['id']} — ÉCHEC : {e}")
 
     if args.update_formulas:
         maj = [c for c in cols
