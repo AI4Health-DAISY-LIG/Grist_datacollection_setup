@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Relevé technique — étude AIadoption</title>
+<style>
+  :root {
+    --bg: #fbfaf8; --surface: #ffffff; --border: #e3e0da; --border-strong: #cfcbc2;
+    --text: #23211d; --muted: #6b675f; --accent: #2f5d50; --accent-text: #ffffff;
+    --warn-bg: #fdf6e8; --warn-border: #e5cf9e; --warn-text: #6b4e12;
+    --code-bg: #f4f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171916; --surface: #1e211d; --border: #33372f; --border-strong: #464b41;
+      --text: #e8e6e1; --muted: #a3a099; --accent: #7fb9a5; --accent-text: #12201b;
+      --warn-bg: #2b2513; --warn-border: #5a4a1f; --warn-text: #e8d49a;
+      --code-bg: #14160f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 32px 16px 64px;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.45rem; line-height: 1.25; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 28px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 22px; margin-bottom: 18px;
+  }
+  h2 { font-size: 1rem; margin: 0 0 12px; letter-spacing: -0.005em; }
+  p { margin: 0 0 12px; }
+  p:last-child, ul:last-child { margin-bottom: 0; }
+  ul { margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 4px; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  button {
+    font: inherit; font-weight: 550; cursor: pointer; border-radius: 7px;
+    padding: 11px 18px; border: 1px solid transparent; transition: opacity .12s;
+  }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:not(:disabled):hover { opacity: .88; }
+  .primary { background: var(--accent); color: var(--accent-text); width: 100%; }
+  .secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child th, tr:last-child td { border-bottom: none; }
+  th { font-weight: 500; color: var(--muted); width: 45%; }
+  td { font-variant-numeric: tabular-nums; }
+  td.na { color: var(--muted); font-style: italic; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 7px;
+    padding: 12px; overflow-x: auto; font-size: 0.8rem; line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0 0 14px; white-space: pre-wrap; word-break: break-all;
+  }
+  .warn {
+    background: var(--warn-bg); border: 1px solid var(--warn-border);
+    color: var(--warn-text); border-radius: 8px; padding: 14px 16px; margin-bottom: 18px;
+    font-size: 0.92rem;
+  }
+  label.check {
+    display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+    padding: 12px; border: 1px solid var(--border-strong); border-radius: 7px;
+    margin-bottom: 14px; font-size: 0.93rem;
+  }
+  label.check input { margin: 3px 0 0; flex-shrink: 0; width: 17px; height: 17px; accent-color: var(--accent); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row button { flex: 1 1 160px; }
+  .hidden { display: none; }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: s; position: relative; padding-left: 30px; margin-bottom: 10px;
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 0; top: 1px;
+    width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+    color: var(--accent-text); font-size: 0.72rem; font-weight: 650;
+    display: grid; place-items: center;
+  }
+  code.inline { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.87em; }
+  footer { color: var(--muted); font-size: 0.82rem; text-align: center; margin-top: 28px; }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>Relevé technique de votre ordinateur</h1>
+  <p class="sub">Étude AIadoption — Université Grenoble Alpes</p>
+
+  <!-- ÉCRAN MOBILE : aucune détection n'est lancée -->
+  <section id="ecran-mobile" class="hidden">
+    <div class="warn">
+      <strong>Vous semblez être sur un téléphone ou une tablette.</strong><br>
+      Cette page mesure l'appareil depuis lequel elle est ouverte. Elle relèverait
+      donc les caractéristiques de votre téléphone, et non celles de l'ordinateur
+      sur lequel vous travaillez.
+    </div>
+    <div class="card">
+      <h2>Que faire</h2>
+      <p>Rouvrez cette même adresse depuis l'ordinateur que vous utilisez pour vos
+        analyses, puis suivez les instructions.</p>
+      <pre id="url-a-recopier"></pre>
+      <button class="secondary" id="btn-copier-url">Copier l'adresse</button>
+      <p class="muted" style="margin-top:14px">Si vous n'utilisez jamais d'ordinateur
+        pour ce type de travail, signalez-le à l'animatrice de la session : c'est en
+        soi une information utile pour l'étude.</p>
+    </div>
+  </section>
+
+  <!-- ÉCRAN 1 : information, avant toute détection -->
+  <section id="ecran-intro">
+    <div class="card">
+      <h2>Ce que fait cette page</h2>
+      <p>Elle relève quelques caractéristiques techniques de cet ordinateur, afin
+        d'évaluer si les outils informatiques enseignés sont adaptés au matériel
+        réellement disponible.</p>
+      <p><strong>Rien n'est relevé tant que vous n'avez pas cliqué</strong> sur le
+        bouton ci-dessous. Vous verrez ensuite l'intégralité de ce qui a été trouvé,
+        avant de décider de le transmettre ou non.</p>
+    </div>
+
+    <div class="card">
+      <h2>Ce qui est relevé</h2>
+      <ul>
+        <li>le système d'exploitation et sa version</li>
+        <li>l'architecture du processeur et son nombre de cœurs</li>
+        <li>le modèle de carte graphique, lorsqu'il est lisible</li>
+      </ul>
+      <h2 style="margin-top:18px">Ce qui n'est jamais relevé</h2>
+      <ul>
+        <li>votre nom, votre adresse électronique, tout identifiant</li>
+        <li>le nom de votre ordinateur ou votre nom d'utilisateur</li>
+        <li>vos fichiers, votre historique, vos adresses réseau</li>
+        <li>aucun cookie, aucun traceur, aucune mesure d'audience</li>
+      </ul>
+      <p class="muted" style="margin-top:16px">Cette page ne communique avec aucun
+        serveur. Le relevé reste affiché sur votre écran ; c'est vous qui le copiez
+        dans le formulaire, si vous le souhaitez. La participation est volontaire et
+        sans conséquence d'aucune sorte.</p>
+    </div>
+
+    <button class="primary" id="btn-relever">Relever les caractéristiques de cet ordinateur</button>
+  </section>
+
+  <!-- ÉCRAN 2 : résultat -->
+  <section id="ecran-resultat" class="hidden">
+    <div class="card">
+      <h2>Ce qui a été relevé</h2>
+      <table id="tableau"></table>
+      <p class="muted" style="margin-top:14px">Les mentions « non déterminé » sont
+        normales : votre navigateur ne donne pas accès à ces informations. Elles vous
+        seront demandées dans le formulaire.</p>
+    </div>
+
+    <div class="card">
+      <h2>Donnée exacte qui sera transmise</h2>
+      <pre id="charge-utile"></pre>
+      <p class="muted">C'est l'intégralité de ce qui partira. Rien d'autre.</p>
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="confirme">
+      <span>Je confirme que cet ordinateur est bien celui que j'utilise pour mon
+        travail d'analyse, et j'accepte de transmettre ces informations à l'étude.</span>
+    </label>
+
+    <div class="row">
+      <button class="primary" id="btn-copier" disabled>Copier le relevé</button>
+      <button class="secondary" id="btn-annuler">Ne rien transmettre</button>
+    </div>
+
+    <div class="card hidden" id="carte-suite" style="margin-top:18px">
+      <h2>Dernière étape</h2>
+      <ol class="steps">
+        <li>Ouvrez le formulaire.</li>
+        <li>Collez le relevé dans le champ <em>Charge utile</em>.</li>
+        <li>Sélectionnez <code class="inline">navigateur</code> dans le champ <em>Source</em><span id="rappel-cohorte"></span>.</li>
+        <li>Répondez aux quelques questions restantes.</li>
+      </ol>
+      <p style="margin-top:14px"><a id="lien-formulaire" href="#">Ouvrir le formulaire</a></p>
+    </div>
+  </section>
+
+  <!-- ÉCRAN 3 : abandon -->
+  <section id="ecran-annule" class="hidden">
+    <div class="card">
+      <h2>Rien n'a été transmis</h2>
+      <p>Le relevé a été effacé. Vous pouvez fermer cette page.</p>
+      <p class="muted">Ne pas participer n'a aucune conséquence.</p>
+    </div>
+  </section>
+
+  <footer>
+    Sandrine Muller — Université Grenoble Alpes<br>
+    Contact protection des données : dpo@univ-grenoble-alpes.fr
+  </footer>
+
+</main>
+
+<script>
+"use strict";
+
+/* Schéma commun avec la sonde Python : exactement ces 11 clés, dans cet ordre,
+   valeur null quand l'information n'est pas accessible depuis un navigateur.
+   Toute divergence ferait échouer le contrôle qa_valide côté Grist. */
+const SCHEMA = "aiadoption-v1";
+const KEYS = ["schema","os","os_release","arch","python","cpu_model",
+              "cpu_logical","ram_gb","gpu","vram_gb","disk_free_gb"];
+
+const params = new URLSearchParams(location.search);
+const COHORTE = params.get("cohorte") || "";
+const FORMULAIRE = params.get("form") || "";
+
+const $ = (id) => document.getElementById(id);
+let releve = null;
+
+/* ---------- Garde mobile : exécutée avant toute détection ---------- */
+function estMobile() {
+  try {
+    if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
+      if (navigator.userAgentData.mobile) return true;
+    }
+    const ua = navigator.userAgent || "";
+    if (/Android|iPhone|iPod|Windows Phone|IEMobile|Opera Mini/i.test(ua)) return true;
+    if (/iPad/i.test(ua)) return true;
+    // iPadOS se présente comme macOS : le tactile multipoint le trahit.
+    if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return true;
+    // Écran étroit sans souris fine.
+    if (window.matchMedia("(pointer: coarse)").matches && screen.width < 900) return true;
+  } catch (e) { /* en cas de doute, on laisse passer */ }
+  return false;
+}
+
+/* ---------- Détection ---------- */
+
+function osDepuisUA() {
+  const ua = navigator.userAgent || "";
+  if (/CrOS/.test(ua)) return "ChromeOS";
+  if (/Windows/.test(ua)) return "Windows";
+  if (/Macintosh|Mac OS X/.test(ua)) return "Darwin";   // vocabulaire de platform.system()
+  if (/Linux|X11/.test(ua)) return "Linux";
+  return null;
+}
+
+function normaliserArch(archi, bits) {
+  if (!archi) return null;
+  const a = String(archi).toLowerCase();
+  if (a.includes("arm")) return "arm64";
+  if (a.includes("x86")) return bits === "32" ? "x86" : "x86_64";
+  return null;
+}
+
+async function detecterPlateforme() {
+  const out = { os: osDepuisUA(), os_release: null, arch: null };
+  try {
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      const h = await navigator.userAgentData.getHighEntropyValues(
+        ["platform", "platformVersion", "architecture", "bitness"]);
+      if (h.platform) {
+        const p = h.platform.toLowerCase();
+        out.os = p.includes("win") ? "Windows"
+               : p.includes("mac") ? "Darwin"
+               : p.includes("chrom") ? "ChromeOS"
+               : p.includes("linux") ? "Linux" : out.os;
+      }
+      if (h.platformVersion) out.os_release = h.platformVersion;
+      out.arch = normaliserArch(h.architecture, h.bitness);
+    }
+  } catch (e) { /* non-Chromium : on garde le repli UA */ }
+
+  if (!out.arch) {
+    const ua = navigator.userAgent || "";
+    if (/arm64|aarch64/i.test(ua)) out.arch = "arm64";
+    else if (/x86_64|Win64|x64|WOW64|Intel Mac/i.test(ua)) out.arch = "x86_64";
+  }
+  return out;
+}
+
+async function detecterGpu(os, arch) {
+  // WebGPU d'abord : plus propre et moins bruité que WebGL.
+  try {
+    if (navigator.gpu && navigator.gpu.requestAdapter) {
+      const ad = await navigator.gpu.requestAdapter();
+      const info = ad && (ad.info || (ad.requestAdapterInfo ? await ad.requestAdapterInfo() : null));
+      if (info) {
+        const morceaux = [info.vendor, info.architecture, info.device, info.description]
+          .filter(Boolean).join(" ").trim();
+        if (morceaux) return morceaux.slice(0, 120);
+      }
+    }
+  } catch (e) { /* ignoré */ }
+
+  try {
+    const cv = document.createElement("canvas");
+    const gl = cv.getContext("webgl") || cv.getContext("experimental-webgl");
+    if (gl) {
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      if (ext) {
+        const r = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
+        if (r) return String(r).slice(0, 120);
+      }
+      const r2 = gl.getParameter(gl.RENDERER);
+      if (r2 && String(r2).toLowerCase() !== "webkit webgl") return String(r2).slice(0, 120);
+    }
+  } catch (e) { /* ignoré */ }
+
+  // Apple Silicon : le GPU intégré se déduit de l'architecture seule.
+  if (os === "Darwin" && arch === "arm64") return "apple-mps";
+  return "inconnu";
+}
+
+async function detecter() {
+  const p = await detecterPlateforme();
+  const gpu = await detecterGpu(p.os, p.arch);
+
+  let coeurs = null;
+  try {
+    const n = navigator.hardwareConcurrency;
+    if (Number.isInteger(n) && n > 0 && n <= 512) coeurs = n;
+  } catch (e) { /* ignoré */ }
+
+  /* navigator.deviceMemory est DÉLIBÉRÉMENT ignoré : la valeur est plafonnée à 8,
+     donc une machine de 32 Go renvoie 8. La mémoire est demandée dans le
+     formulaire, où la réponse est exploitable. */
+
+  const d = {
+    schema: SCHEMA,
+    os: p.os, os_release: p.os_release, arch: p.arch,
+    python: null,          // hors de portée d'un navigateur
+    cpu_model: null,       // idem
+    cpu_logical: coeurs,
+    ram_gb: null,          // voir commentaire ci-dessus
+    gpu: gpu,
+    vram_gb: null,         // hors de portée
+    disk_free_gb: null     // hors de portée
+  };
+
+  const ordonne = {};
+  for (const k of KEYS) ordonne[k] = k in d ? d[k] : null;
+  return ordonne;
+}
+
+/* ---------- Affichage ---------- */
+
+const LIBELLES = {
+  os: "Système", os_release: "Version du système", arch: "Architecture",
+  cpu_logical: "Cœurs logiques", gpu: "Carte graphique",
+  ram_gb: "Mémoire vive", disk_free_gb: "Disque libre", python: "Python",
+  cpu_model: "Modèle de processeur", vram_gb: "Mémoire graphique"
+};
+
+const NOMS_OS = { Windows: "Windows", Darwin: "macOS", Linux: "Linux", ChromeOS: "ChromeOS" };
+
+function joli(k, v) {
+  if (v === null || v === undefined || v === "") return null;
+  if (k === "os") return NOMS_OS[v] || v;
+  if (k === "gpu") {
+    if (v === "inconnu") return null;
+    if (v === "apple-mps") return "GPU intégré Apple Silicon";
+  }
+  return String(v);
+}
+
+function afficherTableau(d) {
+  const t = $("tableau");
+  t.innerHTML = "";
+  for (const k of ["os", "os_release", "arch", "cpu_logical", "gpu",
+                   "ram_gb", "disk_free_gb", "python"]) {
+    const val = joli(k, d[k]);
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    th.textContent = LIBELLES[k];
+    const td = document.createElement("td");
+    if (val === null) { td.textContent = "non déterminé"; td.className = "na"; }
+    else td.textContent = val;
+    tr.append(th, td);
+    t.appendChild(tr);
+  }
+}
+
+/* ---------- Événements ---------- */
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (estMobile()) {
+    $("ecran-intro").classList.add("hidden");
+    $("ecran-mobile").classList.remove("hidden");
+    $("url-a-recopier").textContent = location.href;
+    $("btn-copier-url").addEventListener("click", async (e) => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        e.target.textContent = "Adresse copiée";
+      } catch (err) {
+        e.target.textContent = "Copie impossible — recopiez l'adresse ci-dessus";
+      }
+    });
+    return;   // aucune détection sur mobile
+  }
+
+  $("btn-relever").addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    e.target.textContent = "Relevé en cours…";
+    try {
+      releve = await detecter();
+    } catch (err) {
+      e.target.disabled = false;
+      e.target.textContent = "Le relevé a échoué — réessayer";
+      return;
+    }
+    afficherTableau(releve);
+    $("charge-utile").textContent = JSON.stringify(releve);
+    $("ecran-intro").classList.add("hidden");
+    $("ecran-resultat").classList.remove("hidden");
+  });
+
+  $("confirme").addEventListener("change", (e) => {
+    $("btn-copier").disabled = !e.target.checked;
+  });
+
+  $("btn-copier").addEventListener("click", async () => {
+    const texte = JSON.stringify(releve);
+    let ok = true;
+    try { await navigator.clipboard.writeText(texte); }
+    catch (err) {
+      const ta = document.createElement("textarea");
+      ta.value = texte; document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+      ta.remove();
+    }
+    $("btn-copier").textContent = ok ? "Relevé copié" : "Copie impossible — sélectionnez le texte ci-dessus";
+    if (COHORTE) {
+      $("rappel-cohorte").textContent =
+        ", et « " + COHORTE + " » dans le champ Cohorte";
+    }
+    const lien = $("lien-formulaire");
+    if (FORMULAIRE) { lien.href = FORMULAIRE; lien.target = "_blank"; lien.rel = "noopener"; }
+    else { lien.textContent = "Le lien du formulaire vous est donné par l'animatrice"; lien.removeAttribute("href"); }
+    $("carte-suite").classList.remove("hidden");
+  });
+
+  $("btn-annuler").addEventListener("click", () => {
+    releve = null;
+    $("charge-utile").textContent = "";
+    $("tableau").innerHTML = "";
+    $("ecran-resultat").classList.add("hidden");
+    $("ecran-annule").classList.remove("hidden");
+  });
+});
+</script>
+</body>
+</html>
